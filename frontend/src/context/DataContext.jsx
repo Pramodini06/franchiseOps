@@ -1,40 +1,38 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { initialBranches } from '../data/branches';
 import { initialMenu } from '../data/menu';
 import { initialOrders } from '../data/orders';
 import { initialUsers } from '../data/users';
-import { calcTotals, uid } from '../utils/format';
+import { api } from '../api';
 
 const Ctx = createContext(null);
-
-// In-memory store. In later modules, replace these helpers with API calls.
 export function DataProvider({ children }) {
-  const [branches, setBranches] = useState(initialBranches);
-  const [menu, setMenu] = useState(initialMenu);
-  const [orders, setOrders] = useState(initialOrders);
-  const [users, setUsers] = useState(initialUsers);
-
+  const [branches, setBranches] = useState(initialBranches), [menu, setMenu] = useState(initialMenu), [orders, setOrders] = useState(initialOrders), [users, setUsers] = useState(initialUsers);
+  const [ready, setReady] = useState(false), [dashboardData,setDashboardData]=useState(null);
+  const refresh = useCallback(async () => {
+    if (!localStorage.getItem('fops_token')) { setReady(true); return; }
+    try {
+      const [b,m,o] = await Promise.all([api('/branches'),api('/menu'),api('/orders')]);
+      setBranches(b); setMenu(m); setOrders(o);
+      try { setUsers(await api('/users')); } catch (e) { if (!String(e.message).includes('cannot')) console.warn('User list unavailable:', e.message); }
+    } catch (e) { console.error('Could not load application data:', e.message); }
+    finally { setReady(true); }
+  }, []);
+  const loadDashboard=useCallback(async(range)=>{const result=await api(`/dashboard?range=${range}`);setDashboardData(result);return result},[]);
+  useEffect(() => { refresh(); window.addEventListener('fops:login', refresh); return () => window.removeEventListener('fops:login', refresh); }, [refresh]);
   const value = {
-    branches, menu, orders, users,
-    addBranch: (b) => setBranches((p) => [{ ...b, id: 'b' + uid(), short: b.city, revenue: 0, orders: 0, rating: 0, opened: new Date().toISOString().slice(0, 10) }, ...p]),
-    updateBranch: (id, b) => setBranches((p) => p.map((x) => (x.id === id ? { ...x, ...b } : x))),
-    deleteBranch: (id) => setBranches((p) => p.filter((x) => x.id !== id)),
-
-    addMenuItem: (i) => setMenu((p) => [{ ...i, id: 'm' + uid(), sold: 0 }, ...p]),
-    updateMenuItem: (id, i) => setMenu((p) => p.map((x) => (x.id === id ? { ...x, ...i } : x))),
-    deleteMenuItem: (id) => setMenu((p) => p.filter((x) => x.id !== id)),
-
-    addOrder: (o) => {
-      const max = orders.reduce((m, x) => Math.max(m, Number(x.id.split('-')[2])), 1000);
-      const order = { ...o, ...calcTotals(o.lines), id: `FO-2611-${max + 1}`, status: 'Placed', date: new Date().toISOString() };
-      setOrders((p) => [order, ...p]);
-      return order;
-    },
-    setOrderStatus: (id, status) => setOrders((p) => p.map((x) => (x.id === id ? { ...x, status } : x))),
-
-    addUser: (u) => setUsers((p) => [{ ...u, id: 'u' + uid(), lastLogin: 'Never' }, ...p]),
-    updateUser: (id, u) => setUsers((p) => p.map((x) => (x.id === id ? { ...x, ...u } : x))),
-    deleteUser: (id) => setUsers((p) => p.filter((x) => x.id !== id))
+    branches, menu, orders, users, ready, refresh, dashboardData, loadDashboard,
+    addBranch: async (b) => { const x=await api('/branches',{method:'POST',body:JSON.stringify(b)}); setBranches(p=>[x,...p]); return x; },
+    updateBranch: async (id,b) => { const x=await api(`/branches/${id}`,{method:'PUT',body:JSON.stringify({...branches.find(y=>y.id===id),...b})}); setBranches(p=>p.map(y=>y.id===id?x:y)); return x; },
+    deleteBranch: async (id) => { await api(`/branches/${id}`,{method:'DELETE'}); setBranches(p=>p.filter(x=>x.id!==id)); },
+    addMenuItem: async (i) => { const x=await api('/menu',{method:'POST',body:JSON.stringify(i)}); setMenu(p=>[x,...p]); return x; },
+    updateMenuItem: async (id,i) => { const x=await api(`/menu/${id}`,{method:'PUT',body:JSON.stringify({...menu.find(y=>y.id===id),...i})}); setMenu(p=>p.map(y=>y.id===id?x:y)); return x; },
+    deleteMenuItem: async (id) => { await api(`/menu/${id}`,{method:'DELETE'}); setMenu(p=>p.filter(x=>x.id!==id)); },
+    addOrder: async (o) => { const x=await api('/orders',{method:'POST',body:JSON.stringify(o)}); setOrders(p=>[x,...p]); return x; },
+    setOrderStatus: async (id,status) => { await api(`/orders/${id}/status`,{method:'PATCH',body:JSON.stringify({status})}); setOrders(p=>p.map(x=>x.id===id?{...x,status}:x)); },
+    addUser: async (u) => { const x=await api('/users',{method:'POST',body:JSON.stringify({...u,password:u.password||'demo1234'})}); setUsers(p=>[x,...p]); return x; },
+    updateUser: async (id,u) => { const x=await api(`/users/${id}`,{method:'PUT',body:JSON.stringify({...users.find(y=>y.id===id),...u,password:u.password||'demo1234'})}); setUsers(p=>p.map(y=>y.id===id?x:y)); return x; },
+    deleteUser: async (id) => { await api(`/users/${id}`,{method:'DELETE'}); setUsers(p=>p.filter(x=>x.id!==id)); }
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

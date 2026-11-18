@@ -9,11 +9,12 @@ import Users from '../pages/Users';
 import MenuManagement from '../pages/MenuManagement';
 import Orders from '../pages/Orders';
 import Settings from '../pages/Settings';
+import Assistant from '../pages/Assistant';
 
 function Protected({ children }) {
-  const { isAuthed } = useAuth();
+  const { isAuthed, checking } = useAuth();
   const loc = useLocation();
-  return isAuthed ? children : <Navigate to="/login" replace state={{ from: loc }} />;
+  return checking ? <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">Restoring secure session…</div> : isAuthed ? children : <Navigate to="/login" replace state={{ from: loc }} />;
 }
 function Guard({ k, children }) {
   const { role } = useAuth();
@@ -37,7 +38,8 @@ function NotFound() {
   );
 }
 export default function AppRoutes() {
-  const { isAuthed } = useAuth();
+  const { isAuthed, checking } = useAuth();
+  if (checking) return <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">Restoring secure session…</div>;
   return (
     <Routes>
       <Route path="/login" element={isAuthed ? <Navigate to="/dashboard" replace /> : <Login />} />
@@ -48,6 +50,7 @@ export default function AppRoutes() {
         <Route path="users" element={<Guard k="users"><Users /></Guard>} />
         <Route path="menu" element={<Guard k="menu"><MenuManagement /></Guard>} />
         <Route path="orders" element={<Guard k="orders"><Orders /></Guard>} />
+        <Route path="assistant" element={<Guard k="assistant"><Assistant /></Guard>} />
         <Route path="settings" element={<Guard k="settings"><Settings /></Guard>} />
       </Route>
       <Route path="*" element={<NotFound />} />

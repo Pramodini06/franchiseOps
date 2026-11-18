@@ -13,7 +13,8 @@ export default function Login() {
   const navigate = useNavigate();
   const loc = useLocation();
   const remembered = localStorage.getItem('fops_email');
-  const [roleKey, setRoleKey] = useState('super_admin');
+  const rememberedRole = Object.entries(ROLES).find(([, r]) => r.user.email === remembered)?.[0] || 'super_admin';
+  const [roleKey, setRoleKey] = useState(rememberedRole);
   const [email, setEmail] = useState(remembered || ROLES.super_admin.user.email);
   const [password, setPassword] = useState('demo1234');
   const [show, setShow] = useState(false);
@@ -24,7 +25,7 @@ export default function Login() {
   const [resetEmail, setResetEmail] = useState('');
 
   const pickRole = (k) => { setRoleKey(k); setEmail(ROLES[k].user.email); setPassword('demo1234'); setErrors({}); };
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     const er = {};
     if (!/^\S+@\S+\.\S+$/.test(email)) er.email = 'Enter a valid email address';
@@ -32,12 +33,13 @@ export default function Login() {
     setErrors(er);
     if (Object.keys(er).length) { toast.error('Please fix the highlighted fields.'); return; }
     setLoading(true);
-    setTimeout(() => {
+    try {
       remember ? localStorage.setItem('fops_email', email) : localStorage.removeItem('fops_email');
-      login(roleKey, email);
-      toast.success(`Welcome back, ${ROLES[roleKey].user.name.split(' ')[0]}!`);
+      const session = await login(email, password);
+      toast.success(`Welcome back, ${session.user.name.split(' ')[0]}!`);
       navigate(loc.state?.from?.pathname || '/dashboard', { replace: true });
-    }, 900);
+    } catch (err) { toast.error(err.message || 'Unable to sign in.'); }
+    finally { setLoading(false); }
   };
   const sendReset = () => {
     if (!/^\S+@\S+\.\S+$/.test(resetEmail)) { toast.error('Enter a valid email address.'); return; }
@@ -71,7 +73,7 @@ export default function Login() {
           <h2 className="text-2xl font-bold text-slate-900">Welcome back</h2>
           <p className="mt-1 text-sm text-slate-500">Sign in to your franchise workspace.</p>
 
-          <p className="label mt-6">Demo role (frontend simulation)</p>
+          <p className="label mt-6">Choose a demo account</p>
           <div className="grid grid-cols-2 gap-2">
             {Object.entries(ROLES).map(([k, r]) => (
               <button key={k} type="button" onClick={() => pickRole(k)} className={`rounded-lg border px-3 py-2 text-left transition ${roleKey === k ? 'border-brand-500 bg-brand-50 ring-2 ring-brand-100' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
@@ -96,7 +98,7 @@ export default function Login() {
             </div>
             <button className="btn-primary w-full py-2.5" disabled={loading}>{loading ? <><Spinner /> Signing in…</> : 'Sign in'}</button>
           </form>
-          <p className="mt-6 text-center text-xs text-slate-400">Demo mode — any valid email and a 6+ character password works. No real authentication.</p>
+          <p className="mt-6 text-center text-xs text-slate-400">Demo password for the seeded accounts: demo1234</p>
         </div>
       </div>
 

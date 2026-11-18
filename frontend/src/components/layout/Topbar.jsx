@@ -20,7 +20,7 @@ export default function Topbar({ collapsed, onToggleCollapse, onOpenMobile }) {
   const unread = notes.filter((n) => n.unread).length;
 
   const search = (e) => { e.preventDefault(); if (!q.trim()) return; navigate(`/orders?q=${encodeURIComponent(q.trim())}`); toast.info(`Searching orders for “${q.trim()}”`); };
-  const change = (k) => { switchRole(k); setProfileOpen(false); navigate('/dashboard'); toast.success(`Switched to ${ROLES[k].label} view`); };
+  const change = async (k) => { try { await switchRole(k); setProfileOpen(false); navigate('/dashboard'); toast.success(`Signed in as ${ROLES[k].label}`); } catch (e) { toast.error(e.message || 'Could not switch account'); } };
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/85 px-4 backdrop-blur md:px-6">
@@ -66,7 +66,7 @@ export default function Topbar({ collapsed, onToggleCollapse, onOpenMobile }) {
             <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-2rem)] animate-pop overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
               <div className="border-b border-slate-100 px-4 py-3"><p className="text-sm font-semibold">{user.name}</p><p className="text-xs text-slate-500">{user.email}</p><p className="mt-0.5 text-xs text-slate-400">{user.title}</p></div>
               <div className="border-b border-slate-100 p-2">
-                <p className="flex items-center gap-1.5 px-2 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400"><Repeat size={11} /> Switch demo role</p>
+                <p className="flex items-center gap-1.5 px-2 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400"><Repeat size={11} /> Switch demo account</p>
                 {Object.entries(ROLES).map(([k, r]) => (
                   <button key={k} onClick={() => change(k)} className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-sm hover:bg-slate-50 ${k === roleKey ? 'font-semibold text-brand-700' : 'text-slate-700'}`}>{r.label}{k === roleKey && <span className="h-2 w-2 rounded-full bg-brand-600" />}</button>
                 ))}

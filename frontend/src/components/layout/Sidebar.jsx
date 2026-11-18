@@ -1,10 +1,10 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { ChefHat, LayoutDashboard, Store, Users, UtensilsCrossed, ShoppingBag, Settings, LogOut, X } from 'lucide-react';
+import { ChefHat, LayoutDashboard, Store, Users, UtensilsCrossed, ShoppingBag, Settings, LogOut, X, MessageCircle } from 'lucide-react';
 import { NAV_ITEMS } from '../../data/roles';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
-const ICONS = { LayoutDashboard, Store, Users, UtensilsCrossed, ShoppingBag, Settings };
+const ICONS = { LayoutDashboard, Store, Users, UtensilsCrossed, ShoppingBag, Settings, MessageCircle };
 
 export default function Sidebar({ collapsed, mobileOpen, onClose }) {
   const { role, user, logout } = useAuth();

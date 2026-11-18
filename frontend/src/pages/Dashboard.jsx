@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Activity, Building2, CheckCheck, ChefHat, IndianRupee, ShoppingBag, Store, Star, UtensilsCrossed, Users, Zap, ArrowRight, Clock } from 'lucide-react';
@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useToast } from '../context/ToastContext';
 import { useFakeLoad, useScope } from '../hooks';
-import { salesSeries, activities } from '../data/dashboard';
+import { salesSeries, activities as sampleActivities } from '../data/dashboard';
 import { fmtINR, fmtShort, timeAgo } from '../utils/format';
 import StatCard from '../components/ui/StatCard';
 import StatusBadge from '../components/ui/StatusBadge';
@@ -64,29 +64,34 @@ function StaffDashboard() {
 
 export default function Dashboard() {
   const { role, roleKey, user } = useAuth();
-  const { branches, orders, menu } = useData();
+  const { branches, orders, menu, loadDashboard } = useData();
   const { scopeBranches, ids } = useScope();
-  const loading = useFakeLoad(700);
+  const demoLoading = useFakeLoad(300);
   const [range, setRange] = useState('daily');
+  const [analytics,setAnalytics]=useState(null);
+  useEffect(()=>{let live=true;loadDashboard(range).then(d=>{if(live)setAnalytics(d)}).catch(e=>console.error('Dashboard analytics unavailable:',e.message));return()=>{live=false}},[range,loadDashboard]);
   if (roleKey === 'staff') return <StaffDashboard />;
 
-  const totalAll = branches.reduce((s, b) => s + b.revenue, 0) || 1;
-  const revenue = scopeBranches.reduce((s, b) => s + b.revenue, 0);
-  const factor = revenue / totalAll;
-  const totalOrders = scopeBranches.reduce((s, b) => s + b.orders, 0);
-  const active = scopeBranches.filter((b) => b.status === 'Active').length;
-  const sOrders = orders.filter((o) => ids.includes(o.branchId));
+  const sOrders = analytics?.orders || orders.filter((o) => ids.includes(o.branchId));
+  const monthStart=new Date();monthStart.setDate(1);
+  const monthOrders=sOrders.filter(o=>o.status!=='Cancelled'&&new Date(o.date)>=monthStart);
+  const revenue=analytics?.revenue ?? monthOrders.reduce((s,o)=>s+o.total,0);
+  const totalOrders=analytics?.totalOrders ?? monthOrders.length;
+  const active=analytics?.active ?? scopeBranches.filter((b)=>b.status==='Active').length;
   const recent = sOrders.slice(0, 6);
-  const sales = salesSeries[range].map((p) => ({ ...p, sales: Math.round(p.sales * factor) }));
-  const top = [...menu].sort((a, b) => b.sold - a.sold).slice(0, 5).map((m) => ({ ...m, units: Math.round(m.sold * factor) }));
-  const rating = (scopeBranches.filter((b) => b.rating).reduce((s, b) => s + b.rating, 0) / (scopeBranches.filter((b) => b.rating).length || 1)).toFixed(1);
+  const totalAll = branches.reduce((s, b) => s + b.revenue, 0) || 1;
+  const factor = scopeBranches.reduce((s,b)=>s+b.revenue,0)/totalAll;
+  const activities=(analytics?.activities||sampleActivities).map(a=>({...a,time:a.time.includes('ago')||a.time==='Yesterday'?a.time:timeAgo(a.time)}));
+  const sales = analytics?.sales?.length ? analytics.sales : salesSeries[range].map(p=>({...p,sales:Math.round(p.sales*factor)}));
+  const top = analytics?.topItems?.length ? analytics.topItems : [...menu].sort((a,b)=>b.sold-a.sold).slice(0,5).map(m=>({...m,units:Math.round(m.sold*factor)}));
+  const rating = (analytics?.rating ?? (scopeBranches.filter((b) => b.rating).reduce((s, b) => s + b.rating, 0) / (scopeBranches.filter((b) => b.rating).length || 1))).toFixed(1);
   const cancelRate = sOrders.length ? ((sOrders.filter((o) => o.status === 'Cancelled').length / sOrders.length) * 100).toFixed(1) : '0.0';
   const done = sOrders.length ? Math.round((sOrders.filter((o) => o.status === 'Completed').length / sOrders.length) * 100) : 0;
   const single = scopeBranches.length === 1;
   const statusData = Object.keys(PIE).map((s) => ({ name: s, value: sOrders.filter((o) => o.status === s).length })).filter((d) => d.value);
-  const branchData = scopeBranches.filter((b) => b.revenue).map((b) => ({ name: b.short, revenue: b.revenue }));
+  const branchData = (analytics?.branchRevenue || scopeBranches.filter(b=>b.revenue).map(b=>({name:b.short,revenue:b.revenue}))).filter(b=>b.revenue>0).map(b=>({name:b.name||b.short,revenue:b.revenue}));
 
-  if (loading) return <div className="space-y-6"><CardSkeleton className="h-10 w-72" /><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[1, 2, 3, 4].map((i) => <CardSkeleton key={i} />)}</div><div className="grid gap-6 lg:grid-cols-2"><CardSkeleton className="h-80" /><CardSkeleton className="h-80" /></div></div>;
+  if (demoLoading) return <div className="space-y-6"><CardSkeleton className="h-10 w-72" /><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[1, 2, 3, 4].map((i) => <CardSkeleton key={i} />)}</div><div className="grid gap-6 lg:grid-cols-2"><CardSkeleton className="h-80" /><CardSkeleton className="h-80" /></div></div>;
 
   const perf = [
     { label: 'Avg. order value', value: fmtINR(revenue / (totalOrders || 1)), pct: 72, bar: 'bg-brand-500' },
@@ -166,14 +171,14 @@ export default function Dashboard() {
             <li key={t.id} className="flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-xl">{t.emoji}</span>
               <div className="min-w-0 flex-1"><div className="flex justify-between text-sm"><span className="truncate font-medium">{i + 1}. {t.name}</span><span className="text-slate-500">{t.units.toLocaleString('en-IN')}</span></div>
-                <div className="mt-1.5 h-1.5 rounded-full bg-slate-100"><div className="h-1.5 rounded-full bg-brand-500" style={{ width: `${(t.units / top[0].units) * 100}%` }} /></div></div>
+                <div className="mt-1.5 h-1.5 rounded-full bg-slate-100"><div className="h-1.5 rounded-full bg-brand-500" style={{ width: `${(t.units / (top[0]?.units||1)) * 100}%` }} /></div></div>
             </li>))}</ul>
         </div>
       </div>
 
       <div className="card mt-6 p-5">
         <h3 className="mb-4 flex items-center gap-2 font-semibold"><Clock size={16} className="text-brand-600" /> Recent activities</h3>
-        <ul className="grid gap-x-8 gap-y-3 md:grid-cols-2">{activities.map((a) => { const I = ACT_ICON[a.type]; return (
+        <ul className="grid gap-x-8 gap-y-3 md:grid-cols-2">{activities.map((a) => { const I = ACT_ICON[a.type] || Activity; return (
           <li key={a.id} className="flex items-start gap-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><I size={15} /></span><div><p className="text-sm">{a.text}</p><p className="text-xs text-slate-400">{a.time}</p></div></li>); })}</ul>
       </div>
     </>
