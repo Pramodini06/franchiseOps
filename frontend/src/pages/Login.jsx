@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChefHat, Eye, EyeOff, Lock, Mail, ShieldCheck, TrendingUp, Store, BarChart3 } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, ShieldCheck, TrendingUp, Store, BarChart3 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { ROLES } from '../data/roles';
 import Modal from '../components/ui/Modal';
 import { Field, Spinner } from '../components/ui/misc';
+import BrandLogo from '../components/ui/BrandLogo';
 
 export default function Login() {
   const { login } = useAuth();
@@ -48,30 +49,28 @@ export default function Login() {
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-ink-900 p-12 text-white lg:flex">
-        <div className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-brand-600/30 blur-3xl" />
-        <div className="absolute -bottom-32 -left-20 h-96 w-96 rounded-full bg-amber-500/20 blur-3xl" />
-        <div className="relative flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-brand-400 to-brand-600"><ChefHat size={24} /></div>
-          <span className="text-xl font-bold">FranchiseOps <span className="text-brand-400">AI</span></span>
-        </div>
+      <div className="relative hidden flex-col justify-between overflow-hidden bg-ink-900 p-10 text-white xl:p-14 lg:flex">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full border border-white/5" />
+        <div className="pointer-events-none absolute -right-8 -top-8 h-64 w-64 rounded-full border border-white/5" />
+        <div className="relative"><BrandLogo light /></div>
         <div className="relative">
-          <h1 className="text-4xl font-extrabold leading-tight">Run every outlet <br />like it’s your <span className="text-brand-400">only one.</span></h1>
-          <p className="mt-4 max-w-md text-slate-400">Agentic franchise operations intelligence for restaurant and food chains — branches, menus, orders and performance in one place.</p>
+          <p className="mb-4 text-xs font-semibold uppercase tracking-[.18em] text-brand-200">Food business operations platform</p>
+          <h1 className="max-w-lg text-4xl font-semibold leading-tight tracking-tight">One platform.<br />Every outlet.<br /><span className="text-brand-200">Smarter operations.</span></h1>
+          <p className="mt-5 max-w-md text-sm leading-6 text-slate-300">A clear view of your branches, menus, orders and performance — all in one place.</p>
           <div className="mt-10 space-y-4">
-            {[[Store, 'Multi-branch control', 'Bengaluru, Tumakuru, Mysuru, Hubballi, Mangaluru'], [BarChart3, 'Live revenue insights', 'Branch-wise sales and order analytics'], [ShieldCheck, 'Role-based workspaces', 'Owner, manager and staff views']].map(([I, t, d]) => (
-              <div key={t} className="flex items-start gap-3"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-brand-300"><I size={18} /></div><div><p className="text-sm font-semibold">{t}</p><p className="text-xs text-slate-400">{d}</p></div></div>
+            {[[Store, 'Multi-outlet control', 'Keep branch operations in sync'], [BarChart3, 'Business performance', 'Understand sales and order trends'], [ShieldCheck, 'Role-based workspaces', 'The right view for every team']].map(([I, t, d]) => (
+              <div key={t} className="flex items-start gap-3"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-brand-200"><I size={18} /></div><div><p className="text-sm font-medium">{t}</p><p className="text-xs text-slate-400">{d}</p></div></div>
             ))}
           </div>
         </div>
-        <p className="relative flex items-center gap-2 text-xs text-slate-500"><TrendingUp size={14} /> Module 1 · Frontend prototype</p>
+        <p className="relative flex items-center gap-2 text-xs text-slate-500"><TrendingUp size={14} /> FoodOps · Smarter food business operations</p>
       </div>
 
-      <div className="flex items-center justify-center bg-slate-50 p-5 sm:p-10">
+      <div className="flex items-center justify-center bg-[#f7f7f2] p-5 sm:p-10">
         <div className="w-full max-w-md">
-          <div className="mb-6 flex items-center gap-3 lg:hidden"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 text-white"><ChefHat size={22} /></div><span className="text-lg font-bold">FranchiseOps AI</span></div>
-          <h2 className="text-2xl font-bold text-slate-900">Welcome back</h2>
-          <p className="mt-1 text-sm text-slate-500">Sign in to your franchise workspace.</p>
+          <div className="mb-8 lg:hidden"><BrandLogo /></div>
+          <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Welcome back</h2>
+          <p className="mt-1 text-sm text-slate-500">Sign in to your FoodOps workspace.</p>
 
           <p className="label mt-6">Choose a demo account</p>
           <div className="grid grid-cols-2 gap-2">

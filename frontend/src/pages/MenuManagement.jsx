@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Pencil, Plus, Search, Trash2, Leaf, Store } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -18,6 +19,7 @@ function FoodImage({ item }) {
 }
 
 export default function MenuManagement() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { role } = useAuth();
   const { menu, branches, addMenuItem, updateMenuItem, deleteMenuItem } = useData();
   const toast = useToast();
@@ -27,6 +29,16 @@ export default function MenuManagement() {
   const [q, setQ] = useState(''); const [cat, setCat] = useState('All'); const [branch, setBranch] = useState('All');
   const [form, setForm] = useState({ open: false, item: null });
   const [del, setDel] = useState(null);
+
+  useEffect(() => {
+    if (searchParams.get('new') !== '1' || !can) return;
+    setForm({ open: true, item: null });
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete('new');
+      return next;
+    }, { replace: true });
+  }, [searchParams, setSearchParams, can]);
 
   const list = menu.filter((m) => (cat === 'All' || m.category === cat) && (branch === 'All' || m.branches.includes(branch)) && `${m.name} ${m.description}`.toLowerCase().includes(q.toLowerCase()));
   const pg = usePagination(list, 8);

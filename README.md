@@ -1,4 +1,6 @@
-# FranchiseOps AI — Module 1
+# FoodOps — Food Business Operations Platform
+
+One platform. Every outlet. Smarter operations.
 
 ## Run locally
 

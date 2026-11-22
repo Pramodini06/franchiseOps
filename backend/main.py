@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
-from fastapi import FastAPI, Depends, Header, HTTPException
+from fastapi import FastAPI, Depends, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -174,9 +174,9 @@ def get_orders(user=Depends(current_user)):
         d=dict(row); d['lines']=[dict(x) for x in con.execute('SELECT itemId,name,price,qty FROM order_items WHERE order_id=?',(d['id'],)).fetchall()]; result.append(d)
     con.close(); return result
 @app.get('/api/dashboard')
-def dashboard(range:str='daily',user=Depends(current_user)):
-    if range not in {'daily','weekly','monthly'}: raise HTTPException(400,'Invalid analytics range')
-    now=datetime.now().astimezone(); today=now.date(); start=(today-timedelta(days=6) if range=='daily' else today-timedelta(days=55) if range=='weekly' else today.replace(day=1))
+def dashboard(period:str=Query(default='daily',alias='range'),user=Depends(current_user)):
+    if period not in {'daily','weekly','monthly'}: raise HTTPException(400,'Invalid analytics range')
+    now=datetime.now().astimezone(); today=now.date(); start=(today-timedelta(days=6) if period=='daily' else today-timedelta(days=55) if period=='weekly' else today.replace(day=1))
     con=db()
     if user['role']=='Super Admin': branches=[dict(r) for r in con.execute('SELECT * FROM branches').fetchall()]
     elif user['role']=='Franchise Owner': branches=[dict(r) for r in con.execute("SELECT * FROM branches WHERE id IN ('b1','b2','b3','b4')").fetchall()]
@@ -189,8 +189,8 @@ def dashboard(range:str='daily',user=Depends(current_user)):
     month_start=today.replace(day=1).isoformat()
     month_orders=[o for o in orders if o['status']!='Cancelled' and o['date'][:10]>=month_start]
     revenue=round(sum(o['total'] for o in month_orders),2)
-    if range=='daily': buckets=[(today-timedelta(days=i)) for i in reversed(range(7))]; keys=[d.isoformat() for d in buckets]; labels=[d.strftime('%a') for d in buckets]
-    elif range=='weekly': buckets=[start+timedelta(days=7*i) for i in range(8)]; keys=[d.isoformat() for d in buckets]; labels=[f'W{i+1}' for i in range(8)]
+    if period=='daily': buckets=[(today-timedelta(days=i)) for i in reversed(range(7))]; keys=[d.isoformat() for d in buckets]; labels=[d.strftime('%a') for d in buckets]
+    elif period=='weekly': buckets=[start+timedelta(days=7*i) for i in range(8)]; keys=[d.isoformat() for d in buckets]; labels=[f'W{i+1}' for i in range(8)]
     else:
         buckets=[]; d=today.replace(day=1)
         while d<=today:
@@ -198,10 +198,11 @@ def dashboard(range:str='daily',user=Depends(current_user)):
         keys=[d.strftime('%Y-%m') for d in buckets]; labels=[d.strftime('%b') for d in buckets]
     sales=[]
     for i,key in enumerate(keys):
-        if range=='daily': end=key
-        elif range=='weekly': end=(buckets[i]+timedelta(days=6)).isoformat()
-        else: end=None
-        total=sum(o['total'] for o in orders if o['status']!='Cancelled' and ((o['date'][:10]==key) if range=='daily' else (key<=o['date'][:10]<=end) if range=='weekly' else o['date'][:7]==key))
+        if period=='daily': total=sum(o['total'] for o in orders if o['status']!='Cancelled' and o['date'][:10]==key)
+        elif period=='weekly':
+            end=(buckets[i]+timedelta(days=6)).isoformat()
+            total=sum(o['total'] for o in orders if o['status']!='Cancelled' and key<=o['date'][:10]<=end)
+        else: total=sum(o['total'] for o in orders if o['status']!='Cancelled' and o['date'][:7]==key)
         sales.append({'label':labels[i],'sales':round(total,2)})
     sold={}
     for o in orders:

@@ -9,7 +9,7 @@ export default function DashboardLayout() {
   const { pathname } = useLocation();
   useEffect(() => setMobileOpen(false), [pathname]);
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#f7f7f2]">
       <Sidebar collapsed={collapsed} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
       <div className={`transition-all duration-300 ${collapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
         <Topbar collapsed={collapsed} onToggleCollapse={() => setCollapsed(!collapsed)} onOpenMobile={() => setMobileOpen(true)} />
