@@ -10,6 +10,10 @@ import MenuManagement from '../pages/MenuManagement';
 import Orders from '../pages/Orders';
 import Settings from '../pages/Settings';
 import Assistant from '../pages/Assistant';
+import Attendance from '../pages/Attendance';
+import Inventory from '../pages/Inventory';
+import Analytics from '../pages/Analytics';
+import Alerts from '../pages/Alerts';
 
 function Protected({ children }) {
   const { isAuthed, checking } = useAuth();
@@ -48,6 +52,10 @@ export default function AppRoutes() {
         <Route path="dashboard" element={<Guard k="dashboard"><Dashboard /></Guard>} />
         <Route path="branches" element={<Guard k="branches"><Branches /></Guard>} />
         <Route path="users" element={<Guard k="users"><Users /></Guard>} />
+        <Route path="attendance" element={<Guard k="attendance"><Attendance /></Guard>} />
+        <Route path="inventory" element={<Guard k="inventory"><Inventory /></Guard>} />
+        <Route path="analytics" element={<Guard k="analytics"><Analytics /></Guard>} />
+        <Route path="alerts" element={<Guard k="alerts"><Alerts /></Guard>} />
         <Route path="menu" element={<Guard k="menu"><MenuManagement /></Guard>} />
         <Route path="orders" element={<Guard k="orders"><Orders /></Guard>} />
         <Route path="assistant" element={<Guard k="assistant"><Assistant /></Guard>} />

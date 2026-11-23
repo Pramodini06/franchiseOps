@@ -5,8 +5,8 @@ export default {
     extend: {
       fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
       colors: {
-        brand: { 50:'#fff4ed',100:'#ffe6d5',200:'#fecbaa',300:'#fda874',400:'#fb7a3c',500:'#f25a14',600:'#e34409',700:'#bc3109',800:'#962910',900:'#7a2410' },
-        ink: { 800:'#1f1a17', 900:'#15110f' }
+        brand: { 50:'#eff4ef',100:'#e2ebe2',200:'#c4d7c6',300:'#9fbea4',400:'#6c9677',500:'#3f7353',600:'#2f6243',700:'#244f37',800:'#1d402e',900:'#173526' },
+        ink: { 800:'#1d402e', 900:'#173526' }
       },
       keyframes: {
         pop: { '0%': { opacity: 0, transform: 'translateY(12px) scale(.98)' }, '100%': { opacity: 1, transform: 'none' } },

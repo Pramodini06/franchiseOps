@@ -19,7 +19,7 @@ export default function OrderDetailModal({ order, onClose, onStatus }) {
         {order.status === 'Cancelled' ? <div className="rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-700">This order was cancelled.</div> : (
           <div className="flex items-center">{FLOW.map((s, i) => (
             <div key={s} className="flex flex-1 items-center last:flex-none">
-              <div className="flex flex-col items-center gap-1"><span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${i <= idx ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-500'}`}>{i < idx ? <Check size={14} /> : i + 1}</span><span className="text-[10px] font-medium text-slate-500 sm:text-xs">{s}</span></div>
+            <div className="flex flex-col items-center gap-1"><span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${i <= idx ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-500'}`}>{i < idx ? <Check size={14} /> : i + 1}</span><span className="text-[10px] font-medium text-slate-500 sm:text-xs">{s === 'Placed' ? 'Pending' : s}</span></div>
               {i < FLOW.length - 1 && <div className={`mx-1 mb-4 h-0.5 flex-1 ${i < idx ? 'bg-brand-600' : 'bg-slate-200'}`} />}
             </div>))}</div>)}
         <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">

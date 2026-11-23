@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Activity, Building2, CheckCheck, ChefHat, IndianRupee, ShoppingBag, Store, Star, UtensilsCrossed, Users, Zap, ArrowRight, Clock } from 'lucide-react';
+import { Activity, BarChart3, Building2, CalendarCheck, CheckCheck, ChefHat, IndianRupee, PackageSearch, Plus, ShoppingBag, Store, UtensilsCrossed, UserPlus, Users, Zap, ArrowRight, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useToast } from '../context/ToastContext';
@@ -13,8 +13,8 @@ import StatusBadge from '../components/ui/StatusBadge';
 import { CardSkeleton, PageHeader } from '../components/ui/misc';
 
 const ACT_ICON = { order: ShoppingBag, menu: UtensilsCrossed, branch: Store, user: Users };
-const PIE = { Placed: '#0ea5e9', Preparing: '#f59e0b', Ready: '#8b5cf6', Completed: '#10b981', Cancelled: '#ef4444' };
-const tip = { borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 };
+const PIE = { Placed: '#738b93', Preparing: '#bd9144', Ready: '#7d729d', Completed: '#477656', Cancelled: '#a6675d' };
+const tip = { borderRadius: 12, border: '1px solid #e5e9e1', fontSize: 12 };
 
 function StaffDashboard() {
   const { user } = useAuth();
@@ -81,7 +81,7 @@ export default function Dashboard() {
   const recent = sOrders.slice(0, 6);
   const totalAll = branches.reduce((s, b) => s + b.revenue, 0) || 1;
   const factor = scopeBranches.reduce((s,b)=>s+b.revenue,0)/totalAll;
-  const activities=(analytics?.activities||sampleActivities).map(a=>({...a,time:a.time.includes('ago')||a.time==='Yesterday'?a.time:timeAgo(a.time)}));
+  const activities=(analytics?.activities ?? (roleKey === 'super_admin' ? sampleActivities : [])).map(a=>({...a,time:a.time.includes('ago')||a.time==='Yesterday'?a.time:timeAgo(a.time)}));
   const sales = analytics?.sales?.length ? analytics.sales : salesSeries[range].map(p=>({...p,sales:Math.round(p.sales*factor)}));
   const top = analytics?.topItems?.length ? analytics.topItems : [...menu].sort((a,b)=>b.sold-a.sold).slice(0,5).map(m=>({...m,units:Math.round(m.sold*factor)}));
   const rating = (analytics?.rating ?? (scopeBranches.filter((b) => b.rating).reduce((s, b) => s + b.rating, 0) / (scopeBranches.filter((b) => b.rating).length || 1))).toFixed(1);
@@ -90,6 +90,21 @@ export default function Dashboard() {
   const single = scopeBranches.length === 1;
   const statusData = Object.keys(PIE).map((s) => ({ name: s, value: sOrders.filter((o) => o.status === s).length })).filter((d) => d.value);
   const branchData = (analytics?.branchRevenue || scopeBranches.filter(b=>b.revenue).map(b=>({name:b.short,revenue:b.revenue}))).filter(b=>b.revenue>0).map(b=>({name:b.name||b.short,revenue:b.revenue}));
+  const pendingOrders = sOrders.filter((o) => o.status === 'Placed').length;
+  const inactiveBranches = scopeBranches.filter((b) => b.status !== 'Active');
+  const alerts = [
+    ...(pendingOrders ? [{ title: `${pendingOrders} new ${pendingOrders === 1 ? 'order' : 'orders'} waiting`, detail: 'Review newly placed orders and move them into preparation.', to: role.nav.includes('orders') ? '/orders' : null }] : []),
+    ...(inactiveBranches.length ? [{ title: `${inactiveBranches.length} ${inactiveBranches.length === 1 ? 'outlet needs' : 'outlets need'} attention`, detail: inactiveBranches.map((b) => b.name).join(', '), to: role.nav.includes('branches') ? '/branches' : null }] : [])
+  ];
+  const quickActions = [
+    role.canManageStaff && role.nav.includes('users') && { label: 'Add Staff', to: '/users?new=1', icon: UserPlus },
+    role.canManageAttendance && role.nav.includes('attendance') && { label: 'Mark Attendance', to: '/attendance?mark=1', icon: CalendarCheck },
+    role.canEditMenu && role.nav.includes('menu') && { label: 'Add Menu Item', to: '/menu?new=1', icon: Plus },
+    role.nav.includes('orders') && { label: 'View Orders', to: '/orders', icon: ShoppingBag },
+    role.canManageInventory && role.nav.includes('inventory') && { label: 'Update Inventory', to: '/inventory', icon: PackageSearch },
+    role.nav.includes('analytics') && { label: 'View Analytics', to: '/analytics', icon: BarChart3 }
+  ].filter(Boolean);
+  const monthLabel = new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 
   if (demoLoading) return <div className="space-y-6"><CardSkeleton className="h-10 w-72" /><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[1, 2, 3, 4].map((i) => <CardSkeleton key={i} />)}</div><div className="grid gap-6 lg:grid-cols-2"><CardSkeleton className="h-80" /><CardSkeleton className="h-80" /></div></div>;
 
@@ -102,7 +117,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <PageHeader title={`Welcome, ${user.name.split(' ')[0]}`} subtitle={`${role.label} dashboard · ${single ? scopeBranches[0].name : `${scopeBranches.length} outlets in scope`} · November 2026`}
+      <PageHeader title={`Welcome, ${user.name.split(' ')[0]}`} subtitle={`${role.label} dashboard · ${single ? scopeBranches[0].name : `${scopeBranches.length} outlets in scope`} · ${monthLabel}`}
         actions={<Link to="/orders" className="btn-primary"><ShoppingBag size={16} /> Manage orders</Link>} />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -120,12 +135,12 @@ export default function Dashboard() {
           </div>
           <div className="h-72"><ResponsiveContainer>
             <AreaChart data={sales} margin={{ left: -10, right: 8 }}>
-              <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f25a14" stopOpacity={0.35} /><stop offset="95%" stopColor="#f25a14" stopOpacity={0} /></linearGradient></defs>
+              <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3f7353" stopOpacity={0.24} /><stop offset="95%" stopColor="#3f7353" stopOpacity={0} /></linearGradient></defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
               <XAxis dataKey="label" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis tickFormatter={fmtShort} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
               <Tooltip formatter={(v) => [fmtINR(v), 'Sales']} contentStyle={tip} />
-              <Area type="monotone" dataKey="sales" stroke="#e34409" strokeWidth={2.5} fill="url(#g)" />
+              <Area type="monotone" dataKey="sales" stroke="#2f6243" strokeWidth={2.5} fill="url(#g)" />
             </AreaChart></ResponsiveContainer></div>
         </div>
 
@@ -140,8 +155,8 @@ export default function Dashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
                 <XAxis type="number" tickFormatter={fmtShort} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis type="category" dataKey="name" width={86} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-                <Tooltip formatter={(v) => [fmtINR(v), 'Revenue']} contentStyle={tip} cursor={{ fill: '#fff4ed' }} />
-                <Bar dataKey="revenue" fill="#f25a14" radius={[0, 6, 6, 0]} barSize={18} />
+                <Tooltip formatter={(v) => [fmtINR(v), 'Revenue']} contentStyle={tip} cursor={{ fill: '#eff4ef' }} />
+                <Bar dataKey="revenue" fill="#3f7353" radius={[0, 6, 6, 0]} barSize={18} />
               </BarChart>
             )}
           </ResponsiveContainer></div>
@@ -176,10 +191,35 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="card mt-6 p-5">
-        <h3 className="mb-4 flex items-center gap-2 font-semibold"><Clock size={16} className="text-brand-600" /> Recent activities</h3>
-        <ul className="grid gap-x-8 gap-y-3 md:grid-cols-2">{activities.map((a) => { const I = ACT_ICON[a.type] || Activity; return (
-          <li key={a.id} className="flex items-start gap-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><I size={15} /></span><div><p className="text-sm">{a.text}</p><p className="text-xs text-slate-400">{a.time}</p></div></li>); })}</ul>
+      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+        <div className="card p-5 xl:col-span-2">
+          <h3 className="mb-4 flex items-center gap-2 font-semibold"><Clock size={16} className="text-brand-600" /> Recent activity</h3>
+          <ul className="grid gap-x-8 gap-y-4 md:grid-cols-2">{activities.map((a) => { const I = ACT_ICON[a.type] || Activity; return (
+            <li key={a.id} className="flex items-start gap-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700"><I size={15} /></span><div><p className="text-sm leading-5">{a.text}</p><p className="mt-0.5 text-xs text-slate-400">{a.time}</p></div></li>); })}</ul>
+        </div>
+
+        <div className="space-y-4">
+          <div className="card p-5">
+            <div className="mb-3 flex items-center justify-between"><div className="flex items-center gap-3"><h3 className="font-semibold">Operational alerts</h3><span className={`h-2 w-2 rounded-full ${alerts.length ? 'bg-amber-500' : 'bg-emerald-500'}`} /></div>{role.nav.includes('alerts') && <Link to="/alerts" className="text-xs font-medium text-brand-700 hover:underline">View all</Link>}</div>
+            {alerts.length ? (
+              <ul className="space-y-3">{alerts.map((a) => (
+                <li key={a.title} className="flex items-start gap-3 border-t border-slate-100 pt-3 first:border-0 first:pt-0">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700"><Activity size={14} /></span>
+                  <div className="min-w-0"><p className="text-sm font-medium">{a.title}</p><p className="mt-0.5 text-xs leading-5 text-slate-500">{a.detail}</p>{a.to && <Link to={a.to} className="mt-1 inline-block text-xs font-semibold text-brand-700 hover:text-brand-900">Review <ArrowRight size={12} className="inline" /></Link>}</div>
+                </li>
+              ))}</ul>
+            ) : <p className="border-t border-slate-100 pt-3 text-sm text-slate-500">No operational alerts right now.</p>}
+          </div>
+
+          <div className="card p-5">
+            <h3 className="mb-3 font-semibold">Quick actions</h3>
+            <div className="grid grid-cols-2 gap-2">{quickActions.map(({ label, to, icon: Icon }) => (
+              <Link key={label} to={to} className="flex min-h-16 items-center gap-2 rounded-lg border border-slate-200/80 px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-brand-200 hover:bg-brand-50/60 hover:text-brand-800">
+                <Icon size={16} className="shrink-0 text-brand-700" />{label}
+              </Link>
+            ))}</div>
+          </div>
+        </div>
       </div>
     </>
   );
